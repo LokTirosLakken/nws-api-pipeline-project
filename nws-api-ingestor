@@ -1,0 +1,99 @@
+# %% [markdown]
+# 11/8/26
+# 
+# Objective: Write a program that retrieves meteorlogical data for a coordinate pair and defaults to Austin, TX. It is structured to be imported and called by a script.
+# 
+# Input: 
+# - Latitude and longitude pair.
+# - If only one number is entered, it is used as the latitude, and Austin's longtitude is used.
+# - If no numbers are entered, Austin's default coordinates are used: (30.26715, -97.74306).
+# 
+# 
+# Output: A flattened dictionary consisting of meteorlogical data in the form:
+#   "presentWeather": string,
+#   "temperature_celsius": float,
+#   "relative_humidity": float,
+# 	"wind_speed_kilometer/hour": float,
+# 	"barometric_pressure_Pascal": float,
+#   "visibility_meter": float,
+#   "observation_time": string (ISO timestamp):
+# 
+#  
+#  Target API & Workflow (NWS API):
+# 1. User-Agent Header: NWS requires a custom User-Agent string in the header (include a dummy/placeholder contact email).
+# 2. Point Lookup: Make a GET request to https://api.weather.gov/points/{latitude},{longitude}
+# 3. Station Lookup: Extract the URL from `properties > observationStations` in the JSON response.
+# 4. Closest Station: Make a GET request to that URL and grab the first station ID in the list (the closest one).
+# 5. Latest Observation: Request the latest data from https://api.weather.gov/stations/{stationId}/observations/latest
+# 6. Flattening: Parse the resulting payload, extract the required metrics, and flatten them into the target output dictionary.
+# 
+# 
+# Notes:
+# Coordinates for Austin, TX are 30.26715, -97.74306 for latitude and longtitude respectively
+
+
+# %%
+import requests
+from datetime import datetime, timezone
+
+
+
+
+
+def get_forecast_by_coordinates(lat = 30.26715, lon = -97.74306): #Default coordinates are for Austin, TX
+
+    HEADERS = {
+    "User-Agent": "WeatherPipelineProject, A_random_mans_mail@gmail.com"}
+
+    gridpoint_url = f"https://api.weather.gov/points/{lat},{lon}" #Builds the url for retrieving the gridpoint data
+
+
+
+    try: #try block for retrieving the gridpoint data and station ID
+        gridpoint_response = requests.get(gridpoint_url, headers=HEADERS)
+
+        #fetch the URL for the observation stations from the gridpoint response JSON
+        station_ID_url = gridpoint_response.json()['properties']['observationStations'] 
+
+        #Navigate to the first station in the list, store its ID
+        #Path is ['features']['0']['properties']['stationIdentifier']
+        station_ID = requests.get(station_ID_url, headers=HEADERS).json()['features'][0]['properties']['stationIdentifier']
+
+        #Build the URL for fetching current observations from the stations
+        current_observations_url = f"https://api.weather.gov/stations/{station_ID}/observations/latest"
+
+        #Fetch the current observations data by retrieving the properties dictionary from the JSON response
+        current_observations_data = requests.get(current_observations_url, headers=HEADERS).json()['properties']
+
+        #For this project, we just want the following fields:
+        #temperature, relative humidity, wind speed, barometric pressure, and visibility
+        flattened_properties = {
+            "presentWeather": current_observations_data['textDescription'],
+            "temperature_celsius": current_observations_data['temperature']['value'],
+            "relative_humidity": current_observations_data['relativeHumidity']['value'],
+            "wind_speed_kilometer/hour": current_observations_data['windSpeed']['value'],
+            "barometric_pressure_Pascal": current_observations_data['barometricPressure']['value'],
+            "visibility_meters": current_observations_data['visibility']['value'],
+            "observation_time": current_observations_data['timestamp'],
+            "time-recorded": datetime.now(timezone.utc).isoformat()
+        }
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching gridpoint data: {e}")
+
+
+
+    #For testing:
+    #print(current_observations_data)
+
+    #Return the flattened dictionary of properties
+    return flattened_properties
+#end of get_forecast_by_coordinates
+
+
+
+
+# %%
+if __name__ == "__main__":
+    print(get_forecast_by_coordinates())
+
