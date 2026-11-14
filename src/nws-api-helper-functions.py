@@ -16,7 +16,8 @@
 # 	"wind_speed_kilometer/hour": float,
 # 	"barometric_pressure_Pascal": float,
 #   "visibility_meter": float,
-#   "observation_time": string (ISO timestamp):
+#   "observation_time": string (ISO timestamp),
+#   "station_id": string,
 # 
 #  
 #  Target API & Workflow (NWS API):
@@ -35,7 +36,8 @@
 # %%
 import requests
 from datetime import datetime, timezone
-
+import math
+import re
 
 
 
@@ -67,6 +69,7 @@ def get_forecast_by_coordinates(lat = 30.26715, lon = -97.74306): #Default coord
 
         #For this project, we just want the following fields:
         #temperature, relative humidity, wind speed, barometric pressure, and visibility
+        #Also adding station ID to contribute to primary key
         flattened_properties = {
             "presentWeather": current_observations_data['textDescription'],
             "temperature_celsius": current_observations_data['temperature']['value'],
@@ -75,7 +78,8 @@ def get_forecast_by_coordinates(lat = 30.26715, lon = -97.74306): #Default coord
             "barometric_pressure_Pascal": current_observations_data['barometricPressure']['value'],
             "visibility_meters": current_observations_data['visibility']['value'],
             "observation_time": current_observations_data['timestamp'],
-            "time-recorded": datetime.now(timezone.utc).isoformat()
+            "time-recorded": datetime.now(timezone.utc).isoformat(),
+            "station_id": station_ID,
         }
 
     except requests.exceptions.RequestException as e:
@@ -85,15 +89,56 @@ def get_forecast_by_coordinates(lat = 30.26715, lon = -97.74306): #Default coord
 
     #For testing:
     #print(current_observations_data)
+    #print(f"The station ID is {station_ID}.")
 
     #Return the flattened dictionary of properties
     return flattened_properties
 #end of get_forecast_by_coordinates
 
 
+#%% NWS API Cleaner
+# Purpose:
+#   Accept a dictionary input and perform data validation on the entries within
+#   This is logically separated from the ingestor to preserve raw data
 
+def clean_observation_data(properties: dict):
+    #Define some helper subfuntions
+    def clean_float(value, precision = 2):
+        #if numerical data is null or a boolean, set it to none, else cast it to float
+        if value is None or isinstance(value, bool):
+            return None
+        try:
+            num = float(value)
+            if not math.isfinite(num):
+                return None
+            return round(num, precision)
+        except (ValueError,TypeError): 
+            return None
+    #end of clean_float
+    desc = properties.get("presentWeather")
+    cleaned_desc = desc.strip().capitalize() if isinstance(desc, str) and desc.strip else None
 
-# %%
-if __name__ == "__main__":
-    print(get_forecast_by_coordinates())
+    station = properties.get("station_id")
+    cleaned_station = station.strip().upper() if isinstance(station, str) and station.strip() else None
 
+    return{
+        "presentWeather": cleaned_desc,
+        "temperature_celsius": clean_float(properties.get("temperature_celsius")),
+        "relative_humidity": clean_float(properties.get("relative_humidity")),
+        "wind_speed_kilometer/hour": clean_float(properties.get("wind_speed_kilometer/hour")),
+        "barometric_pressure_Pascal": clean_float(properties.get("barometric_pressure_Pascal")),
+        "visibility_meters": clean_float(properties.get("visibility_meters")),
+        "observation_time": properties.get("observation_time"),
+        "time-recorded": properties.get("time-recorded"),
+        "station_id": cleaned_station,        
+    }
+
+    
+
+        
+        
+
+# %%Test
+#raw_dict = get_forecast_by_coordinates()
+#print(f"Raw dictionary is \n: {raw_dict}")
+#print(f"Cleaned dictionary is \n: {clean_observation_data(raw_dict)}")
