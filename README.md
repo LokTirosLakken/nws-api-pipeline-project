@@ -8,7 +8,7 @@ This is a self-driven project to learn core concepts of data engineering.
 We now have a main script that can perform an API request to fetch observation data from NWS, validate them and load them into a database.
 
 #### Problems to tackle:
-- NWS's API had an outage, but my code did not read for an HTML status code and returned confusing errors. This needs to be updated.
+- My program could not access a key endpoint in NWS API, but did not test for HTML status codes and returned confusing errors. This needs to be updated.
 - Add tests for various input types
 - Coordinate validation
 - Updating documentation
