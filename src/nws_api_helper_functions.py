@@ -10,13 +10,14 @@
 # 
 # 
 # Output: A flattened dictionary consisting of meteorlogical data in the form:
-#   "presentWeather": string,
+#   "present_weather": string,
 #   "temperature_celsius": float,
 #   "relative_humidity": float,
-# 	"wind_speed_kilometer/hour": float,
+# 	"wind_speed_kilometer_hour": float,
 # 	"barometric_pressure_Pascal": float,
 #   "visibility_meter": float,
 #   "observation_time": string (ISO timestamp),
+#   "time_recorded": string (iso timestamp)
 #   "station_id": string,
 # 
 #  
@@ -71,19 +72,20 @@ def get_forecast_by_coordinates(lat = 30.26715, lon = -97.74306): #Default coord
         #temperature, relative humidity, wind speed, barometric pressure, and visibility
         #Also adding station ID to contribute to primary key
         flattened_properties = {
-            "presentWeather": current_observations_data['textDescription'],
+            "present_weather": current_observations_data['textDescription'],
             "temperature_celsius": current_observations_data['temperature']['value'],
             "relative_humidity": current_observations_data['relativeHumidity']['value'],
-            "wind_speed_kilometer/hour": current_observations_data['windSpeed']['value'],
+            "wind_speed_kilometer_hour": current_observations_data['windSpeed']['value'],
             "barometric_pressure_Pascal": current_observations_data['barometricPressure']['value'],
             "visibility_meters": current_observations_data['visibility']['value'],
             "observation_time": current_observations_data['timestamp'],
-            "time-recorded": datetime.now(timezone.utc).isoformat(),
+            "time_recorded": datetime.now(timezone.utc).isoformat(),
             "station_id": station_ID,
         }
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching gridpoint data: {e}")
+        raise
 
 
 
@@ -115,21 +117,21 @@ def clean_observation_data(properties: dict):
         except (ValueError,TypeError): 
             return None
     #end of clean_float
-    desc = properties.get("presentWeather")
+    desc = properties.get("present_weather")
     cleaned_desc = desc.strip().capitalize() if isinstance(desc, str) and desc.strip else None
 
     station = properties.get("station_id")
     cleaned_station = station.strip().upper() if isinstance(station, str) and station.strip() else None
 
     return{
-        "presentWeather": cleaned_desc,
+        "present_weather": cleaned_desc,
         "temperature_celsius": clean_float(properties.get("temperature_celsius")),
         "relative_humidity": clean_float(properties.get("relative_humidity")),
-        "wind_speed_kilometer/hour": clean_float(properties.get("wind_speed_kilometer/hour")),
+        "wind_speed_kilometer_hour": clean_float(properties.get("wind_speed_kilometer_hour")),
         "barometric_pressure_Pascal": clean_float(properties.get("barometric_pressure_Pascal")),
         "visibility_meters": clean_float(properties.get("visibility_meters")),
         "observation_time": properties.get("observation_time"),
-        "time-recorded": properties.get("time-recorded"),
+        "time_recorded": properties.get("time_recorded"),
         "station_id": cleaned_station,        
     }
 
