@@ -14,10 +14,10 @@ We now have a main script that can perform an API request to fetch observation d
 - Updating documentation
 
 #### Future plans
--Make this automated through Github Actions
--Coordinate validation for custom coordinates
--Custom database file (might need this for Github Actions?)
--Free cloud database
+- Make this automated through Github Actions
+- Coordinate validation for custom coordinates
+- Custom database file (might need this for Github Actions?)
+- Free cloud database
 
 
 
